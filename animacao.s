@@ -1,0 +1,14 @@
+.global ANIMACAO_COMECA
+
+ANIMACAO_COMECA:
+	
+ret
+
+
+
+.global ANIMACAO_TERMINA
+
+ANIMACAO_TERMINA:
+
+ret
+

@@ -1,0 +1,14 @@
+.global CRONOMETRO_LIGA
+
+CRONOMETRO_LIGA:
+	
+ret
+
+
+
+.global CRONOMETRO_DESLIGA
+
+CRONOMETRO_DESLIGA:
+
+ret
+
