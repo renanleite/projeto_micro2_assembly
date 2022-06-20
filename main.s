@@ -10,6 +10,78 @@
 	}
 */
 
+
+.org 0x20  #rti
+
+		rdctl et, ipending					# Check if external interrupt occurred 
+		beq et, r0, OTHER_EXCEPTIONS		# If zero, check exceptions */
+		subi ea, ea, 4 						# Hardware interrupt, decrement ea to execute the interrupted */
+
+		andi r13, et, 1 					# Check if irq1 asserted */
+		beq r13, r0, OTHER_INTERRUPTS		# If not, check other external interrupts */
+		call EXT_IRQ0 						# If yes, go to IRQ1 service routine */
+		OTHER_INTERRUPTS:
+
+		br END_HANDLER 						# Done with hardware interrupts */
+		OTHER_EXCEPTIONS:
+		
+		END_HANDLER:
+				
+	eret
+		
+
+
+EXT_IRQ0:
+
+		movia r13, FLAG_ANIMACAO
+		ldw r17 ,(r13)
+		beq r17, r0, SAI_IRQ0
+		
+		movia r13, ANIMACAO_LED
+		
+		ldw r14, (r13)
+		
+		movi r15, 17
+		bne r14, r15, CONTINUA_ANIMACAO
+		
+		movi r14, -1
+		
+		CONTINUA_ANIMACAO:
+		
+		movia r18, 0x10000040
+		ldwio r19, (r18)
+		andi r19,r19,1
+		
+		movi r18, 1
+		
+		beq r19, r18, ANIMACAO_ANTIHORARIO	#if switch = 1
+		
+		ANIMACAO_HORARIO:
+			subi r14, r14, 1
+			br PULA
+		
+		ANIMACAO_ANTIHORARIO:
+			addi r14, r14, 1
+		
+		PULA:
+		
+		stw r14, (r13)
+		
+		movi r15, 1
+		sll r15, r15, r14
+		
+		movia r13, 0x10000000
+		
+		stwio r15, (r13)
+		
+		
+		SAI_IRQ0:
+		
+		movia r14, 0x10002000
+		stwio r0, (r14)
+		
+		ret
+
 PRINT:
 	subi sp, sp, 4 					/* reserve space on the stack */
 	stw  ra, 0(sp)
@@ -26,6 +98,8 @@ FIM_PRINT:
 	addi sp, sp, 4
 	ret
 
+	
+	
 
 .global _start
 
@@ -36,6 +110,29 @@ _start:
 									/* print a text string */						
 	movia r10, BUFFER
 	movia r8, TEXT_STRING
+	
+	
+	#temporizador
+	movia r15, 10000000
+	
+	movia r16, 0x10002000
+	
+	stwio r15, 12(r16)
+	srli r15, r15, 16
+	stwio r15, 12(r16)
+	
+	movi r15, 7 
+	stwio r15, 4(r16)
+	
+	
+	#interrupcao
+	movi r18, 1
+	wrctl ienable, r18
+			
+	movi r18, 1
+	wrctl status, r18
+
+	
 	
 LOOP:
 	mov r4, r8
@@ -139,8 +236,9 @@ WHILE:
 br WHILE
 
 
-
-
+.global FLAG_ANIMACAO
+FLAG_ANIMACAO:
+.word 0
 
 TEXT_STRING:
 .asciz "\nEntre com o comando: "
@@ -148,6 +246,8 @@ TEXT_STRING:
 TEXT_ERROR:
 .asciz "\nComando errado "
 
+ANIMACAO_LED:
+.word 0
 
 BUFFER:
 .skip 50 						#5 caracteres
