@@ -19,6 +19,7 @@
 
 		andi r13, et, 1 					# Check if irq1 asserted */
 		beq r13, r0, OTHER_INTERRUPTS		# If not, check other external interrupts */
+		call LOGICA_CRONOMETRO
 		call EXT_IRQ0 						# If yes, go to IRQ1 service routine */
 		OTHER_INTERRUPTS:
 
@@ -27,9 +28,37 @@
 		
 		END_HANDLER:
 				
-	eret
+eret
 		
 
+
+LOGICA_CRONOMETRO:
+	
+	
+	movia r13, FLAG_CRONOMETRO
+	ldw r17 ,(r13)
+	beq r17, r0, SAI_CRONOMETRO
+	
+	
+	
+	
+	movia r18, 0x10000020
+	movia r19, TABLE
+	addi r19, r19, 7
+	ldb r17, (r19)
+	stbio r17, (r18)
+	
+	movia r19, TABLE
+	addi r19, r19, 3
+	
+	ldb r17, (r19)
+	stbio r17, 1(r18)
+	
+	
+	
+	SAI_CRONOMETRO:
+	
+ret
 
 EXT_IRQ0:
 
@@ -47,16 +76,23 @@ EXT_IRQ0:
 		movi r14, -1
 		
 		CONTINUA_ANIMACAO:
-		
-		movia r18, 0x10000040
-		ldwio r19, (r18)
-		andi r19,r19,1
-		
-		movi r18, 1
-		
-		beq r19, r18, ANIMACAO_ANTIHORARIO	#if switch = 1
+			
+			movia r18, 0x10000040
+			ldwio r19, (r18)
+			andi r19,r19,1
+			
+			movi r18, 1
+			
+			beq r19, r18, ANIMACAO_ANTIHORARIO	#if switch = 1
 		
 		ANIMACAO_HORARIO:
+		
+			
+			bne r14, r0, CONTINUA_ANIMACAO_2									#tira bug 
+			
+			movi r14, 17
+			
+			CONTINUA_ANIMACAO_2:
 			subi r14, r14, 1
 			br PULA
 		
@@ -80,7 +116,10 @@ EXT_IRQ0:
 		movia r14, 0x10002000
 		stwio r0, (r14)
 		
-		ret
+ret
+
+		
+		
 
 PRINT:
 	subi sp, sp, 4 					/* reserve space on the stack */
@@ -235,6 +274,10 @@ WHILE:
 
 br WHILE
 
+	
+.global FLAG_CRONOMETRO
+FLAG_CRONOMETRO:
+.word 0
 
 .global FLAG_ANIMACAO
 FLAG_ANIMACAO:
@@ -251,5 +294,30 @@ ANIMACAO_LED:
 
 BUFFER:
 .skip 50 						#5 caracteres
+
+.global TABLE
+TABLE:
+	.byte 0x3F #0
+	.byte 0x06 #1
+	.byte 0x5B #2
+	.byte 0x4F #3
+	.byte 0x66 #4
+	.byte 0x6D #5
+	.byte 0x7D #6
+	.byte 0x27 #7
+	.byte 0x7F #8
+	.byte 0x6F #9
+
+UNI_SEG:
+.byte 0
+
+DEZ_SEG
+.byte 0
+
+UNI_MIN
+.byte 0
+
+DEZ_MIN
+.byte 0
 
 .end
