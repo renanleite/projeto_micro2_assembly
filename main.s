@@ -16,7 +16,7 @@
 		rdctl et, ipending					# Check if external interrupt occurred 
 		beq et, r0, OTHER_EXCEPTIONS		# If zero, check exceptions */
 		subi ea, ea, 4 						# Hardware interrupt, decrement ea to execute the interrupted */
-
+		
 		andi r13, et, 1 					# Check if irq1 asserted */
 		beq r13, r0, OTHER_INTERRUPTS		# If not, check other external interrupts */
 		call LOGICA_CRONOMETRO
@@ -34,28 +34,100 @@ eret
 
 LOGICA_CRONOMETRO:
 	
+	movia r19, CONTADOR
+	ldw r20, (r19)
+	movi r18, 5
+	addi r20, r20, 1
+	stw r20, (r19)
+	bne r20, r18, SAI_CRONOMETRO
+	
+	stw r0, (r19)						#zera contador
 	
 	movia r13, FLAG_CRONOMETRO
 	ldw r17 ,(r13)
 	beq r17, r0, SAI_CRONOMETRO
 	
+	movia r19, UNI_SEG
+	ldb r20, (r19)
+	addi r20, r20, 1
+	movi r18, 9
+	ble r20, r18, NAO_ATUALIZA_DEZ
 	
+	mov r20, r0
+	
+	movia r21, UNI_DEZ				#incrementa dezena
+	ldb r22, (r21)
+	addi r22, r22, 1 
+	
+	movi r18, 5
+	ble r22, r18, NAO_ATUALIZA_UN_MIN
+					
+	mov r22, r0
+	
+	movia r23, UNI_MIN				#incrementa unidade minuto
+	ldb r12, (r23)
+	addi r12, r12, 1 
+	
+	movi r18, 9
+	ble r12, r18, NAO_ATUALIZA_DEZ_MIN
+	
+	mov r12, r0
+	
+	movia r3, DEZ_MIN				#incrementa dezena minuto
+	ldb r2, (r3)
+	addi r2, r2, 1 
+	
+	movi r18, 9
+	ble r2, r18, NAO_RESETA
+	
+	#RESETAR OS DISPLAYS
+	
+	NAO_RESETA:
+	
+	stb r2, (r3)
+	
+	NAO_ATUALIZA_DEZ_MIN:
+	
+	stb r12, (r23)
+	
+	NAO_ATUALIZA_UN_MIN:
+	
+	stb r22, (r21)
+	
+	NAO_ATUALIZA_DEZ:
+	
+	stb r20, (r19)
 	
 	
 	movia r18, 0x10000020
-	movia r19, TABLE
-	addi r19, r19, 7
+	
+	movia r19, TABLE			#display 1
+	add r19, r19, r20
+	
 	ldb r17, (r19)
 	stbio r17, (r18)
 	
-	movia r19, TABLE
-	addi r19, r19, 3
+	
+	movia r19, TABLE			#display 2
+	add r19, r19, r22
 	
 	ldb r17, (r19)
 	stbio r17, 1(r18)
 	
 	
+	movia r19, TABLE			#display 3
+	add r19, r19, r12
 	
+	ldb r17, (r19)
+	stbio r17, 2(r18)
+	
+	movia r19, TABLE			#display 4
+	add r19, r19, r2
+	
+	ldb r17, (r19)
+	stbio r17, 3(r18)
+	
+
 	SAI_CRONOMETRO:
 	
 ret
@@ -292,6 +364,9 @@ TEXT_ERROR:
 ANIMACAO_LED:
 .word 0
 
+CONTADOR:
+.word 0
+
 BUFFER:
 .skip 50 						#5 caracteres
 
@@ -307,17 +382,17 @@ TABLE:
 	.byte 0x27 #7
 	.byte 0x7F #8
 	.byte 0x6F #9
-
+	
 UNI_SEG:
 .byte 0
 
-DEZ_SEG
+UNI_DEZ:
 .byte 0
 
-UNI_MIN
+UNI_MIN:
 .byte 0
 
-DEZ_MIN
+DEZ_MIN:
 .byte 0
 
 .end
